@@ -1,0 +1,10 @@
+{
+  "active_hypothesis_id": null,
+  "hypotheses": [],
+  "input_baseline": null,
+  "metrics": {
+    "objectives": [],
+    "relative_noise": 0.0
+  },
+  "schema_version": 1
+}
