@@ -1,7 +1,14 @@
 {
   "active_hypothesis_id": null,
   "hypotheses": [],
-  "input_baseline": null,
+  "input_baseline": {
+    "commit": "a48d7975f4d7f005b7cd7a20ffbdefd6ce6cac81",
+    "direction": "max",
+    "metric": "total_ops_per_sec",
+    "metrics": {
+      "total_ops_per_sec": 1774176.161778
+    }
+  },
   "metrics": {
     "objectives": [],
     "relative_noise": 0.0
