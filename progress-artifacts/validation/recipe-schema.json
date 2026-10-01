@@ -1,0 +1,101 @@
+{
+  "$defs": {
+    "ValidationRecipe": {
+      "additionalProperties": false,
+      "description": "A bounded, reusable local validation command proposed by an implementer.\n\nThe independent judge audits the recipe before the framework executes it.\nTarget, deployment, benchmark, profiler, and official evaluator commands\nbelong to their existing framework-owned gates instead.",
+      "properties": {
+        "name": {
+          "description": "Stable short identifier for this validation recipe.",
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "command": {
+          "description": "Exact non-interactive command to execute from the workspace root.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Command",
+          "type": "string"
+        },
+        "input_paths": {
+          "description": "Workspace-relative source, test, lock, or configuration paths that fully determine whether a prior passing result can be reused.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Input Paths",
+          "type": "array"
+        },
+        "timeout_seconds": {
+          "default": 300,
+          "description": "Hard wall-clock timeout for this local validation command.",
+          "maximum": 1800,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        },
+        "purpose": {
+          "description": "The observable contract this command validates.",
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Purpose",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "command",
+        "input_paths",
+        "purpose"
+      ],
+      "title": "ValidationRecipe",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned candidate-authored container for local validation recipes.",
+  "examples": [
+    {
+      "recipes": [
+        {
+          "command": "uv run pytest -q test_server.py",
+          "input_paths": [
+            "server.py",
+            "test_server.py",
+            "pyproject.toml",
+            "uv.lock"
+          ],
+          "name": "focused-tests",
+          "purpose": "Exercise the focused local server contract.",
+          "timeout_seconds": 300
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "properties": {
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "recipes": {
+      "items": {
+        "$ref": "#/$defs/ValidationRecipe"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Recipes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "recipes"
+  ],
+  "title": "ValidationRecipeArtifact",
+  "type": "object"
+}
