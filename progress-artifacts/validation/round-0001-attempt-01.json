@@ -1,0 +1,47 @@
+{
+  "round": 1,
+  "attempt": 1,
+  "results": [
+    {
+      "recipe": {
+        "name": "rust-mpmc-core-tests",
+        "command": "cargo test --locked",
+        "input_paths": [
+          "Cargo.toml",
+          "Cargo.lock",
+          "src/lib.rs",
+          "src/ffi.rs"
+        ],
+        "timeout_seconds": 300,
+        "purpose": "Exercise bounded LIFO behavior, insufficient-output preservation, and concurrent MPMC slot conservation through the changed implementation."
+      },
+      "input_digest": "dffe8d00e090039f0d7b551cf42765251cb5a9ba0d7ae5633ad65a43bb9b4482",
+      "passed": true,
+      "reused": false,
+      "exit_code": 0,
+      "output": "running 2 tests\ntest tests::reusable_slots_keep_storage_preallocated ... ok\ntest tests::safe_core_is_bounded_stack ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\n[stderr] Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s\n[stderr]      Running unittests src/lib.rs (/tmp/cursor-sandbox-cache/35258bb978b39efec5231ee1e0946f18/cargo-target/debug/deps/stack_candidate-87ad080d98f82258)",
+      "error": null
+    },
+    {
+      "recipe": {
+        "name": "tagged-slot-static-check",
+        "command": "rg -n 'AtomicU64|publish_slot|claim_published_slot|claim_free_slot|recycle_slot|slot_data_ptr' src/lib.rs",
+        "input_paths": [
+          "src/lib.rs",
+          "src/ffi.rs",
+          "Cargo.toml",
+          "Cargo.lock",
+          "Makefile"
+        ],
+        "timeout_seconds": 30,
+        "purpose": "Confirm the determining source path contains the tagged heads, publication/claim/recycle transitions, and preallocated slot arena access."
+      },
+      "input_digest": "3a22afe02ce57f2c1e1948d338068b712445ab074bcabd5a908fd1641ef6e2e1",
+      "passed": true,
+      "reused": false,
+      "exit_code": 0,
+      "output": "7:use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};\n37:    free_head: AtomicU64,\n38:    published_head: AtomicU64,\n109:                free_head: AtomicU64::new(pack_head(0, 0)),\n110:                published_head: AtomicU64::new(pack_head(0, EMPTY_INDEX)),\n142:    unsafe fn slot_data_ptr(&self, index: u32) -> *mut u8 {\n148:    fn claim_free_slot(&self) -> Result<u32, u32> {\n173:    fn publish_slot(&self, index: u32) {\n195:    fn claim_published_slot(&self, output_capacity: usize) -> Result<(u32, usize), u32> {\n229:    fn recycle_slot(&self, index: u32) {\n257:        let index = match self.state.claim_free_slot() {\n268:                self.state.slot_data_ptr(index),\n273:        self.state.publish_slot(index);\n280:        let (index, length) = self.state.claim_published_slot(output.len())?;\n287:                self.state.slot_data_ptr(index),\n292:        self.state.recycle_slot(index);",
+      "error": null
+    }
+  ]
+}

@@ -58,3 +58,9 @@ PASS. The nominated outcome is ready for framework gates. Candidate identity is 
 
 ### Feedback
 
+## Round 1 — Framework local validation (attempt 1)
+- **verdict**: pass
+- **artifact**: `progress-artifacts/validation/round-0001-attempt-01.json`
+- **rust-mpmc-core-tests**: pass (executed, inputs `dffe8d00e090`)
+- **tagged-slot-static-check**: pass (executed, inputs `3a22afe02ce5`)
+
