@@ -77,3 +77,38 @@ PASS. The nominated outcome is ready for framework gates. Candidate identity is 
 ### Output
 PASS - mpmc reservation-aware bounded stack (100 trials, approximately 24 ops/trial, 4P/4C, capacity=1024, value_size=8)
 
+## Round 1 — Framework benchmark (attempt 1)
+- **verdict**: pass
+- **command**: `go -C _evaluator/stack run . benchmark --workspace ../.. --scenario mpmc --repetitions 3`
+- **total_ops_per_sec**: 3450045.0755
+
+### Output
+Scenario: mpmc  Repetitions: 3  Median successful ops/s: 3450045
+  Samples: [3.352937969246e+06 3.466927988126e+06 3.4500450755e+06]
+Scenario: mpmc  Duration: 10.000s  Prod: 4  Cons: 4
+  Enqueued: 17250565  Full: 100429051  Dequeued: 17250498  Empty: 74332158
+  Successful: 34501063  Attempts: 209262272 (3450045 successful ops/s)
+
+__VIBESYS_FRAMEWORK_BENCHMARK_JSON__
+[
+  {
+    "scenario": "mpmc",
+    "enqueued": 17250565,
+    "dropped": 100429051,
+    "dequeued": 17250498,
+    "empty": 74332158,
+    "attempts": 209262272,
+    "duration": 10.00017746,
+    "total_ops_per_sec": 3450045.0755,
+    "producers": 4,
+    "consumers": 4,
+    "repetitions": 3,
+    "total_ops_per_sec_samples": [
+      3352937.969246,
+      3466927.988126,
+      3450045.0755
+    ]
+  }
+]
+__VIBESYS_FRAMEWORK_BENCHMARK_JSON_END__
+
