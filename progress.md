@@ -64,3 +64,16 @@ PASS. The nominated outcome is ready for framework gates. Candidate identity is 
 - **rust-mpmc-core-tests**: pass (executed, inputs `dffe8d00e090`)
 - **tagged-slot-static-check**: pass (executed, inputs `3a22afe02ce5`)
 
+## Round 1 — Official evaluation policy (attempt 1)
+- **decision**: run
+- **reason**: final_round
+- **cadence**: every 3 accepted candidate checkpoints
+- **provisional_candidates_before_this_round**: 0
+
+## Round 1 — Framework accuracy gate (attempt 1)
+- **verdict**: pass
+- **command**: `go -C _evaluator/stack run . check --workspace ../.. --scenario mpmc --operations 24 --trials 100`
+
+### Output
+PASS - mpmc reservation-aware bounded stack (100 trials, approximately 24 ops/trial, 4P/4C, capacity=1024, value_size=8)
+
