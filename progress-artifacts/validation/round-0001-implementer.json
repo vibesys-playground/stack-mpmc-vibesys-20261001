@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "name": "rust-mpmc-core-tests",
+      "command": "cargo test --locked",
+      "input_paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "src/lib.rs",
+        "src/ffi.rs"
+      ],
+      "timeout_seconds": 300,
+      "purpose": "Exercise bounded LIFO behavior, insufficient-output preservation, and concurrent MPMC slot conservation through the changed implementation."
+    },
+    {
+      "name": "tagged-slot-static-check",
+      "command": "rg -n 'AtomicU64|publish_slot|claim_published_slot|claim_free_slot|recycle_slot|slot_data_ptr' src/lib.rs",
+      "input_paths": [
+        "src/lib.rs",
+        "src/ffi.rs",
+        "Cargo.toml",
+        "Cargo.lock",
+        "Makefile"
+      ],
+      "timeout_seconds": 30,
+      "purpose": "Confirm the determining source path contains the tagged heads, publication/claim/recycle transitions, and preallocated slot arena access."
+    }
+  ]
+}

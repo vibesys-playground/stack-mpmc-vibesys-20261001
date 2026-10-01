@@ -55,7 +55,16 @@ as a debugging task and use `parked` with a concrete hypothesis.
 
 ## Major
 
-(populate on round 1 based on the objective)
+- [in_progress] **Preallocated tagged-slot MPMC LIFO** (round 1) — replace the
+  shared mutex and per-item allocation with bounded fixed slots, tagged atomic
+  reservation/publication heads, and copy-before-recycle; directly targets the
+  visible MPMC contention and allocation costs.
+- [todo] **Ownership-aware MPMC decomposition** — investigate a hierarchical
+  or sharded design only if the single published-top coordination point remains
+  the measured limiter after the active experiment.
+- [todo] **Copy-path/data-layout specialization** — reduce value-copy and cache
+  traffic without relaxing the ABI, only after concurrency coordination is
+  quantitatively bounded.
 
 ## Minor
 
