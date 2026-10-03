@@ -242,3 +242,20 @@ FAIL. The candidate itself is scope-clean: current source and tracked shared lib
 ### Feedback
 Preserve the valid Round 1 frontier/control row and do not credit the mismatched Round 2 validation output. A corrected framework checkpoint must then execute the current Round 3 validation recipe and official gates. No source or performance defect was established; the failure is the retention/identity inconsistency preventing the nominated outcome from being ready for gates.
 
+## Round 3 — Implementer (attempt 2)
+- **expected_behavior**: The bounded tagged offer-cell handoff arm remains unchanged and ready for framework correctness and official evaluation against the retained Round 1 control.
+- **hypothesis_outcome**: nominated
+- **next_step**: (none)
+
+- **candidate_disposition**: unassessed
+- **candidate_metrics**: {}
+- **candidate_evaluation_artifact**: (missing)
+- **candidate_operating_point**: (none)
+- **candidate_retention_reason**: No target-bound Round 3 measurement exists; retain the corrected Round 1 control pending framework evaluation.
+
+### Summary
+Restored the valid Round 1 frontier/control record in pareto-frontier.md; no source, artifact, or performance changes were made.
+
+### Evidence
+The Pareto record now exactly matches the prior valid Round 1 frontier: commit 092bbe85734f, 3,450,045 total_ops_per_sec, retained=True. The current Round 3 validation recipe remains schema-valid and unchanged. Source, ABI, build inputs, and stack-candidate.so are clean relative to the checkpoint. The mismatched Round 2 validation artifact was not credited or modified. Framework validation and official gates were not duplicated.
+

@@ -1,0 +1,18 @@
+{
+  "summary": "Restored the valid Round 1 frontier/control record in pareto-frontier.md; no source, artifact, or performance changes were made.",
+  "expected_behavior": "The bounded tagged offer-cell handoff arm remains unchanged and ready for framework correctness and official evaluation against the retained Round 1 control.",
+  "hypothesis_outcome": "nominated",
+  "evidence": "The Pareto record now exactly matches the prior valid Round 1 frontier: commit 092bbe85734f, 3,450,045 total_ops_per_sec, retained=True. The current Round 3 validation recipe remains schema-valid and unchanged. Source, ABI, build inputs, and stack-candidate.so are clean relative to the checkpoint. The mismatched Round 2 validation artifact was not credited or modified. Framework validation and official gates were not duplicated.",
+  "next_step": "",
+  "perf_metric": null,
+  "perf_unit": null,
+  "metrics": {},
+  "evaluation_artifact": null,
+  "candidate_disposition": "unassessed",
+  "candidate_metrics": {},
+  "candidate_evaluation_artifact": null,
+  "candidate_operating_point": "",
+  "candidate_retention_reason": "No target-bound Round 3 measurement exists; retain the corrected Round 1 control pending framework evaluation.",
+  "skill_context_updates": [],
+  "validation_recipe_artifact": "progress-artifacts/validation/round-0003-implementer.json"
+}
