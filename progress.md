@@ -162,3 +162,12 @@ Implemented H2 bounded tagged offer-cell handoff in src/lib.rs and rebuilt stack
 ### Evidence
 Seven cargo tests pass, including direct handoff, withdrawal/reuse, duplicate payloads, newest-offer LIFO, and concurrent conservation. Release build succeeded with all nine ABI exports. Evaluator MPMC correctness gate passed 100 trials. No benchmark or target allocation was run.
 
+## Round 2 — Judge (attempt 1)
+- **verdict**: pass
+
+### Analysis
+PASS. The nominated candidate stays within scope: only src/lib.rs and the rebuilt artifact changed; src/ffi.rs and evaluator inputs are unchanged. Static review verifies bounded tagged offer states, release/acquire handoff, reservation-aware capacity, fallback publication, copy-before-recycle, and no operation-time allocation. An isolated release rebuild produced a byte-identical stack-candidate.so with all nine required exports. A bounded independent ABI and 4P/4C conservation diagnostic passed. The validation recipe is schema-compliant and non-target; it was audited without execution. No Round 2 throughput row or retention claim is made, so nomination remains consistent and ready for framework gates.
+
+### Feedback
+No actionable failure. The claimed Round 2 correctness result is not yet present in the framework validation ledger, so it is not independently credited; nomination appropriately leaves that gate to the framework.
+
