@@ -1,5 +1,5 @@
 {
-  "active_hypothesis_id": "H3-bounded-handoff-causal-arm",
+  "active_hypothesis_id": null,
   "hypotheses": [
     {
       "candidate_retained": true,
@@ -187,9 +187,9 @@
       "strategy_reason": null
     },
     {
-      "candidate_retained": null,
+      "candidate_retained": false,
       "continuation_rounds": 0,
-      "declared_outcome": null,
+      "declared_outcome": "nominated",
       "feedback": "Preserve the valid Round 1 frontier/control row and do not credit the mismatched Round 2 validation output. A corrected framework checkpoint must then execute the current Round 3 validation recipe and official gates. No source or performance defect was established; the failure is the retention/identity inconsistency preventing the nominated outcome from being ready for gates.",
       "gate_accuracy_passed": false,
       "gate_approved_candidate_disposition": "unassessed",
@@ -204,7 +204,18 @@
       "gate_candidate_commit": null,
       "gate_revalidation_pending": false,
       "hypothesis_id": "H3-bounded-handoff-causal-arm",
-      "measurement": null,
+      "measurement": {
+        "baseline_commit": "092bbe85734f8ae1dc0b341bf5bad6a971c6c744",
+        "baseline_round": 1,
+        "baseline_value": 3450045.0755,
+        "delta_pct": -20.694792762048944,
+        "delta_reason": null,
+        "direction": "max",
+        "metric": "total_ops_per_sec",
+        "round": 3,
+        "unit": "total_ops_per_sec",
+        "value": 2736065.396928
+      },
       "next_step": null,
       "parent_commit": "8b04c08169f3fa4cf859b67fecfacd5db569d46f",
       "parent_round": 2,
@@ -225,11 +236,51 @@
         "task": "Use the current bounded handoff implementation in /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs as the sole experimental arm against the Round 1 preallocated tagged-slot parent. Preserve /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs, the copying C ABI, evaluator inputs, and the validated slot state machine; do not add sharding, batching, profiling, or another tuning point. Stage the work as: cheap capability confirmation that the shared library and required exports remain valid; focused changed-dataflow checks forcing direct offer claim, producer withdrawal and global fallback, offer reuse, insufficient-output preservation, duplicate payload distinction, reservation-aware FULL versus publication-aware EMPTY, concurrent conservation, and cleanup; then one framework-owned comparable MPMC evaluation using the same configuration as the retained parent. Do not duplicate the canonical benchmark command. If a correctness defect appears, isolate the complete changed dataflow locally before any target call and allow at most one additional target allocation only after a correctness-only repair. Hard paid-call maximum over retries is one initial target allocation plus one repair allocation; a wrapper rejection is unspent only with raw proof that target allocation never began. If the arm is rejected, retain the parent explicitly as production default.",
         "title": "Measure bounded handoff against tagged-slot parent"
       },
-      "resolution": null,
+      "resolution": "disproven",
       "revert_applied": false,
       "revert_commit": null,
-      "review": "pending",
-      "rounds": [],
+      "review": "pass",
+      "rounds": [
+        {
+          "candidate_disposition": "unassessed",
+          "candidate_evaluation_artifact": null,
+          "candidate_metrics": {},
+          "candidate_operating_point": "",
+          "candidate_retained": false,
+          "candidate_retention_reason": "No target-bound Round 3 measurement exists; retain the corrected Round 1 control pending framework evaluation.",
+          "commit": "917141b4ea94e2294a2b31d05ea65e1549583375",
+          "evaluation_artifact": null,
+          "hypothesis_claim": "With the unchanged copying ABI and preallocated tagged-slot storage, the bounded tagged offer-cell handoff arm will improve end-to-end MPMC throughput by bypassing the global published-head CAS for overlapping push/pop pairs, while withdrawal fallback preserves reservation-aware capacity, publication visibility, and exact ownership.",
+          "hypothesis_declared_outcome": "nominated",
+          "hypothesis_id": "H3-bounded-handoff-causal-arm",
+          "hypothesis_outcome": "disproven",
+          "hypothesis_parent_commit": "8b04c08169f3fa4cf859b67fecfacd5db569d46f",
+          "hypothesis_parent_round": 2,
+          "hypothesis_task": "Use the current bounded handoff implementation in /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs as the sole experimental arm against the Round 1 preallocated tagged-slot parent. Preserve /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs, the copying C ABI, evaluator inputs, and the validated slot state machine; do not add sharding, batching, profiling, or another tuning point. Stage the work as: cheap capability confirmation that the shared library and required exports remain valid; focused changed-dataflow checks forcing direct offer claim, producer withdrawal and global fallback, offer reuse, insufficient-output preservation, duplicate payload distinction, reservation-aware FULL versus publication-aware EMPTY, concurrent conservation, and cleanup; then one framework-owned comparable MPMC evaluation using the same configuration as the retained parent. Do not duplicate the canonical benchmark command. If a correctness defect appears, isolate the complete changed dataflow locally before any target call and allow at most one additional target allocation only after a correctness-only repair. Hard paid-call maximum over retries is one initial target allocation plus one repair allocation; a wrapper rejection is unspent only with raw proof that target allocation never began. If the arm is rejected, retain the parent explicitly as production default.",
+          "implementer_driver": "agentshim",
+          "implementer_model": "gpt-5.6-luna",
+          "implementer_provider": "codex",
+          "judge_verdict": "pass",
+          "metrics": {
+            "total_ops_per_sec": 2736065.396928
+          },
+          "official_evaluation": true,
+          "official_evaluation_reason": "final_round",
+          "passed": true,
+          "perf_baseline_commit": "092bbe85734f8ae1dc0b341bf5bad6a971c6c744",
+          "perf_baseline_metric": 3450045.0755,
+          "perf_baseline_round": 1,
+          "perf_comparison": "worse",
+          "perf_delta_pct": -20.694792762048944,
+          "perf_direction": "max",
+          "perf_metric": 2736065.396928,
+          "perf_provenance": "framework",
+          "perf_unit": "total_ops_per_sec",
+          "profile_skipped": false,
+          "reviewed": true,
+          "round_number": 3
+        }
+      ],
       "started_round": 3,
       "strategy": "available",
       "strategy_reason": null
