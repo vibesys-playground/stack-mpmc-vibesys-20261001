@@ -259,3 +259,11 @@ Restored the valid Round 1 frontier/control record in pareto-frontier.md; no sou
 ### Evidence
 The Pareto record now exactly matches the prior valid Round 1 frontier: commit 092bbe85734f, 3,450,045 total_ops_per_sec, retained=True. The current Round 3 validation recipe remains schema-valid and unchanged. Source, ABI, build inputs, and stack-candidate.so are clean relative to the checkpoint. The mismatched Round 2 validation artifact was not credited or modified. Framework validation and official gates were not duplicated.
 
+## Round 3 — Judge (attempt 2)
+- **verdict**: pass
+
+### Analysis
+PASS. The nominated handoff arm is scope-clean and ready for framework gates: current source, ABI, Cargo inputs, and stack-candidate.so match tracked identity; all nine required exports are present; static review confirms bounded tagged offer cells, direct-claim and withdrawal/fallback paths, copied ownership, reservation-aware capacity, and no operation-time allocation. The Round 3 validation recipe is schema-valid, bounded, non-mutating, and contains no target, benchmark, deployment, profiler, or official-evaluator work. The valid Round 1 control row is restored in pareto-frontier.md, while the stale Round 2 validation artifact is explicitly not credited. No throughput claim or continuation step is declared.
+
+### Feedback
+
