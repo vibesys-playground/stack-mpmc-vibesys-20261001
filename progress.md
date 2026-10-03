@@ -171,3 +171,9 @@ PASS. The nominated candidate stays within scope: only src/lib.rs and the rebuil
 ### Feedback
 No actionable failure. The claimed Round 2 correctness result is not yet present in the framework validation ledger, so it is not independently credited; nomination appropriately leaves that gate to the framework.
 
+## Round 2 — Framework local validation (attempt 1)
+- **verdict**: pass
+- **artifact**: `progress-artifacts/validation/round-0002-attempt-01.json`
+- **rust-handoff-core-tests**: pass (executed, inputs `f2326ba138af`)
+- **handoff-static-check**: pass (executed, inputs `0a8ce701def3`)
+
