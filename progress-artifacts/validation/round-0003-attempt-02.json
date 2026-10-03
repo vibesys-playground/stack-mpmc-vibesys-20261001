@@ -1,0 +1,66 @@
+{
+  "round": 3,
+  "attempt": 2,
+  "results": [
+    {
+      "recipe": {
+        "name": "rust-handoff-core-tests",
+        "command": "cargo test --locked",
+        "input_paths": [
+          "Cargo.toml",
+          "Cargo.lock",
+          "src/lib.rs",
+          "src/ffi.rs"
+        ],
+        "timeout_seconds": 300,
+        "purpose": "Exercise direct offer claiming, withdrawal publication and reuse, insufficient-output preservation, duplicate payload distinction, bounded LIFO behavior, and concurrent MPMC conservation through the changed implementation."
+      },
+      "input_digest": "f2326ba138af5ee09dc40c2b6df26ceb61fdd2bcd60c92ebeea75e08666596e7",
+      "passed": true,
+      "reused": false,
+      "exit_code": 0,
+      "output": "running 5 tests\ntest tests::checked_arena_sizing_rejects_overflow ... ok\ntest tests::safe_core_is_bounded_stack ... ok\ntest tests::invalid_pop_does_not_remove_variable_length_value ... ok\ntest tests::invalid_pop_after_concurrent_publish_leaves_output_unchanged ... ok\ntest tests::claimed_slot_is_not_reused_before_direct_copy_finishes ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\n[stderr] Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s\n[stderr]      Running unittests src/lib.rs (/tmp/cursor-sandbox-cache/35258bb978b39efec5231ee1e0946f18/cargo-target/debug/deps/stack_candidate-87ad080d98f82258)",
+      "error": null
+    },
+    {
+      "recipe": {
+        "name": "handoff-static-check",
+        "command": "rg -n 'OfferCell|OFFER_(EMPTY|OFFERED|CLAIMED)|offer_or_publish|claim_offer|release_offer|free_head|published_head|slot_data_ptr|AtomicU64' src/lib.rs",
+        "input_paths": [
+          "src/lib.rs",
+          "src/ffi.rs",
+          "Cargo.toml",
+          "Cargo.lock",
+          "Makefile"
+        ],
+        "timeout_seconds": 30,
+        "purpose": "Confirm the determining source path contains fixed tagged offer-cell states, bounded handoff and global fallback transitions, retained tagged heads, and preallocated slot storage."
+      },
+      "input_digest": "0848391cf2e5406e2923133e2cf582653c200f3047630dd0996af02aaad55b46",
+      "passed": true,
+      "reused": false,
+      "exit_code": 0,
+      "output": "9:use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};\n19:const OFFER_EMPTY: u32 = 0;\n20:const OFFER_OFFERED: u32 = 1;\n21:const OFFER_CLAIMED: u32 = 2;\n38:struct OfferCell {\n39:    state: AtomicU64,\n41:    sequence: AtomicU64,\n52:    free_head: AtomicU64,\n53:    published_head: AtomicU64,\n54:    offer_cells: Box<[OfferCell]>,\n55:    offer_sequence: AtomicU64,\n132:            offer_cells.push(OfferCell {\n133:                state: AtomicU64::new(pack_offer_state(0, OFFER_EMPTY)),\n135:                sequence: AtomicU64::new(0),\n147:                free_head: AtomicU64::new(pack_head(0, 0)),\n148:                published_head: AtomicU64::new(pack_head(0, EMPTY_INDEX)),\n150:                offer_sequence: AtomicU64::new(0),\n186:    unsafe fn slot_data_ptr(&self, index: u32) -> *mut u8 {\n194:            let current = self.free_head.load(Ordering::Acquire);\n203:                .free_head\n219:            let current = self.published_head.load(Ordering::Acquire);\n225:                .published_head\n243:            let current = self.published_head.load(Ordering::Acquire);\n261:                .published_head\n277:            let current = self.free_head.load(Ordering::Acquire);\n282:                .free_head\n304:    fn offer_or_publish(&self, index: u32) {\n308:            if state != OFFER_EMPTY {\n313:            let claimed = pack_offer_state(claim_tag, OFFER_CLAIMED);\n334:            let offered = pack_offer_state(claim_tag, OFFER_OFFERED);\n357:                    pack_offer_state(claim_tag, OFFER_EMPTY),\n376:    fn claim_offer(\n384:            if state != OFFER_OFFERED {\n401:        let offered = pack_offer_state(tag, OFFER_OFFERED);\n417:        let claimed = pack_offer_state(tag, OFFER_CLAIMED);\n434:    fn release_offer(&self, cell_index: usize, tag: u32) {\n436:        let claimed = pack_offer_state(tag, OFFER_CLAIMED);\n437:        let empty = pack_offer_state(tag, OFFER_EMPTY);\n476:                self.state.slot_data_ptr(index),\n481:        self.state.offer_or_publish(index);\n494:        if let Some((cell_index, index, length, tag)) = self.state.claim_offer(output.len())? {\n497:                    self.state.slot_data_ptr(index),\n503:            self.state.release_offer(cell_index, tag);\n528:                self.state.slot_data_ptr(index),\n631:            .all(|cell| unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_EMPTY));\n650:                    unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_OFFERED\n672:                    unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_OFFERED\n710:                .all(|cell| unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_EMPTY));",
+      "error": null
+    },
+    {
+      "recipe": {
+        "name": "abi-export-check",
+        "command": "test -f stack-candidate.so && for symbol in vsst_abi_version vsst_stack_create vsst_stack_destroy vsst_producer_create vsst_producer_destroy vsst_consumer_create vsst_consumer_destroy vsst_try_push vsst_try_pop; do nm -D --defined-only stack-candidate.so | awk '{print $3}' | rg -qx \"$symbol\" || exit 1; done",
+        "input_paths": [
+          "stack-candidate.so",
+          "_evaluator/stack/include/vibesys_stack_abi.h",
+          "src/ffi.rs"
+        ],
+        "timeout_seconds": 30,
+        "purpose": "Confirm the materialized candidate artifact exists and exports every required copying C ABI symbol."
+      },
+      "input_digest": "b61507cae9b82ef3d74ab63b5976329265e2505e3e20fe0c00d5f3068a1ab1ed",
+      "passed": true,
+      "reused": false,
+      "exit_code": 0,
+      "output": "<no output>",
+      "error": null
+    }
+  ]
+}

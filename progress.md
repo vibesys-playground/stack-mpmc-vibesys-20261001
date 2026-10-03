@@ -267,3 +267,10 @@ PASS. The nominated handoff arm is scope-clean and ready for framework gates: cu
 
 ### Feedback
 
+## Round 3 — Framework local validation (attempt 2)
+- **verdict**: pass
+- **artifact**: `progress-artifacts/validation/round-0003-attempt-02.json`
+- **rust-handoff-core-tests**: pass (executed, inputs `f2326ba138af`)
+- **handoff-static-check**: pass (executed, inputs `0848391cf2e5`)
+- **abi-export-check**: pass (executed, inputs `b61507cae9b8`)
+
