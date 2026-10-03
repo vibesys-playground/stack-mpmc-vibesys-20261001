@@ -112,3 +112,8 @@ __VIBESYS_FRAMEWORK_BENCHMARK_JSON__
 ]
 __VIBESYS_FRAMEWORK_BENCHMARK_JSON_END__
 
+## Round 2 — Orchestrator (pre-round)
+- **need_profile**: False
+- **profile_focus**: No profiling requested; standalone profiling is disabled. Carry any missing bottleneck attribution or parent-comparison visibility as uncertainty into the design call.
+- **reasoning**: The latest progress shows a correctness-passing preallocated tagged-slot implementation and a trusted MPMC benchmark result, while static history already identifies the prior mutex/allocation bottleneck and the current mechanism. No profiling is authorized or necessary to make the next design decision; planning should use the available benchmark evidence and treat absent attribution as uncertainty.
+
