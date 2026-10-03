@@ -233,3 +233,12 @@ Revalidated the existing bounded handoff arm without source changes; rebuilt the
 ### Evidence
 cargo test --locked passed all 7 focused tests, including direct handoff, withdrawal/reuse, insufficient-output preservation, duplicate payloads, overlapping-offer LIFO, and concurrent MPMC conservation. Release build succeeded; stack-candidate.so matches the release binary byte-for-byte and exports all 9 required ABI symbols. Static handoff checks passed. No framework-owned correctness gate or benchmark was duplicated, so no throughput metric is claimed.
 
+## Round 3 — Judge (attempt 1)
+- **verdict**: fail
+
+### Analysis
+FAIL. The candidate itself is scope-clean: current source and tracked shared library are byte-consistent, all 9 ABI exports exist, `cargo check --release --locked` passes, and static review finds bounded storage, tagged heads, handoff/fallback ownership, copy-before-recycle, and no operation-time allocation. The nominated outcome correctly makes no throughput claim and has no continuation step. However, `pareto-frontier.md` incorrectly drops the valid, nondominated Round 1 official row of 3,450,045.0755 ops/s (`retained: None`), despite progress/state identifying it as the retained parent. Also, the Round 2 validation artifact reports five test names absent from the current source, so it cannot establish current correctness identity. The Round 3 recipe is schema-valid and appropriately unexecuted pending framework processing.
+
+### Feedback
+Preserve the valid Round 1 frontier/control row and do not credit the mismatched Round 2 validation output. A corrected framework checkpoint must then execute the current Round 3 validation recipe and official gates. No source or performance defect was established; the failure is the retention/identity inconsistency preventing the nominated outcome from being ready for gates.
+
