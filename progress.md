@@ -287,3 +287,38 @@ PASS. The nominated handoff arm is scope-clean and ready for framework gates: cu
 ### Output
 PASS - mpmc reservation-aware bounded stack (100 trials, approximately 24 ops/trial, 4P/4C, capacity=1024, value_size=8)
 
+## Round 3 — Framework benchmark (attempt 2)
+- **verdict**: pass
+- **command**: `go -C _evaluator/stack run . benchmark --workspace ../.. --scenario mpmc --repetitions 3`
+- **total_ops_per_sec**: 2736065.396928
+
+### Output
+Scenario: mpmc  Repetitions: 3  Median successful ops/s: 2736065
+  Samples: [1.71019607691e+06 2.736065396928e+06 3.05662433751e+06]
+Scenario: mpmc  Duration: 10.000s  Prod: 4  Cons: 4
+  Enqueued: 13680631  Full: 73627401  Dequeued: 13680557  Empty: 20093523
+  Successful: 27361188  Attempts: 121082112 (2736065 successful ops/s)
+
+__VIBESYS_FRAMEWORK_BENCHMARK_JSON__
+[
+  {
+    "scenario": "mpmc",
+    "enqueued": 13680631,
+    "dropped": 73627401,
+    "dequeued": 13680557,
+    "empty": 20093523,
+    "attempts": 121082112,
+    "duration": 10.000195182,
+    "total_ops_per_sec": 2736065.396928,
+    "producers": 4,
+    "consumers": 4,
+    "repetitions": 3,
+    "total_ops_per_sec_samples": [
+      1710196.07691,
+      2736065.396928,
+      3056624.33751
+    ]
+  }
+]
+__VIBESYS_FRAMEWORK_BENCHMARK_JSON_END__
+
