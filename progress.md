@@ -117,3 +117,48 @@ __VIBESYS_FRAMEWORK_BENCHMARK_JSON_END__
 - **profile_focus**: No profiling requested; standalone profiling is disabled. Carry any missing bottleneck attribution or parent-comparison visibility as uncertainty into the design call.
 - **reasoning**: The latest progress shows a correctness-passing preallocated tagged-slot implementation and a trusted MPMC benchmark result, while static history already identifies the prior mutex/allocation bottleneck and the current mechanism. No profiling is authorized or necessary to make the next design decision; planning should use the available benchmark evidence and treat absent attribution as uncertainty.
 
+## Round 2 — Orchestrator (plan)
+- **hypothesis_id**: H2-bounded-mpmc-handoff
+- **reasoning**: The comparable trajectory is baseline to the retained Round 1 tagged-slot point; the ledger has no trusted baseline A/B, so the end-to-end delta is unmeasured. The latest absolute point is 3.45005e6, and the remaining gap is unknown because no terminal target is configured. The architecture changed from mutex-plus-heap storage to preallocated tagged heads in `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs`. The retained parent is the correct control. Bounded direct handoff is the next structural test of the remaining global publication boundary, without speculative sharding or copy-layout tuning. No profiling is needed to choose this experiment, and official cadence is not due.
+
+### Hypothesis
+Adding a bounded, non-waiting elimination handoff array to the retained preallocated tagged-slot stack will let overlapping producers transfer completed slots directly to consumers, reducing global published-head CAS contention while preserving reservation-aware capacity and exact LIFO linearizability.
+
+### Activation evidence
+The retained design has global published-top and free-head CAS operations on every successful push/pop, while the trusted workload uses 4 producers and 4 consumers with high failed-operation traffic. This experiment targets that coordination boundary while retaining validated slot ownership.
+
+### Falsification criteria
+Any trusted correctness or ABI failure falsifies the candidate. If focused checks cannot demonstrate both handoff claim and withdrawal-to-publication fallback without leaks, duplicates, or stale-cell reuse, the mechanism is not activated. If activation is demonstrated but the trusted result misses the minimum, reject this implementation and park the direction; a flat metric alone is not a contract violation.
+
+### Expected effect (forecast)
+Forecast an 8-30% increase in trusted total_ops_per_sec when overlapping push/pop operations use direct handoff; neutral or negative results are plausible when handoff activation is low or copy cost dominates.
+
+### Minimum acceptance criteria
+After all hard gates pass, require at least an 8% median total_ops_per_sec improvement over the retained Round 1 point of 3.45005e6, approximately 3.726e6 or higher, with no more than 5% relative degradation in any repeated accepted comparison. The floor exceeds the observed roughly 3.4% sample spread and pays for added atomic state and probing. Allowed tradeoff is bounded O(producer_count + consumer_count) metadata only; no ABI, semantic, safety, or operation-time-allocation tradeoff is allowed.
+
+### Invariants
+Hard feasibility: `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/.vibesys/state/runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/runtime/effective-objective.md`. ABI/lifecycle: `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/_evaluator/stack/CANDIDATE_CONTRACT.md` and `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs`. Trusted semantics: `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/_evaluator/stack/DESIGN.md` and `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/_evaluator/stack/benchmark.go`. Retained implementation: `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs`. Require tagged offer-cell reuse, release/acquire handoff, reservation before offering, bounded probing, and one owner per slot transition.
+
+### Task
+Modify only the candidate implementation around the retained slot state machine in `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs`; keep `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs` and the copying C ABI unchanged. Add fixed bounded offer cells with tagged slot references and explicit empty/offered/claimed reuse states. Push must validate, claim a free slot, copy the value, and release-publish an offer with only bounded probing and no waiting. A consumer claim completes the handoff; otherwise the producer atomically withdraws and publishes the same slot through the existing tagged global LIFO head. Consumers must validate output capacity, acquire and claim only a live offer, copy before recycle, and otherwise use the existing published-head pop. Preserve reservation-aware FULL, publication-aware EMPTY, invalid-output preservation, exact LIFO linearizability, duplicate values, and one-owner-per-slot transitions. Document the linearization cases. Verification strategy: confirm the shared library builds and existing ABI exports remain present; run focused local checks forcing direct handoff, withdrawal, fallback publication, insufficient output, duplicate payloads, and conservation; then use the framework-owned correctness gate and one comparable evaluation without duplicating its canonical benchmark. If correctness fails, isolate the changed dataflow before any further target allocation. Maximum paid calls: one initial target allocation plus one additional allocation only after a correctness-only repair; no tuning expansion. A wrapper rejection is unspent only with raw proof that target allocation never began.
+
+### Pass criteria
+Activation: fixed offer cells demonstrate both successful claim and withdrawal-to-global-publication paths. Correctness: unchanged ABI/lifecycle, copied ownership, duplicate distinction, reservation-aware FULL, publication-aware EMPTY, insufficient-output preservation, LIFO linearizability, conservation, and ABA safety pass the trusted gate. Cleanup: each slot recycles exactly once and all handles/storage are released; retain the parent as production default if rejected. Evidence: one comparable target result against the retained parent follows local changed-dataflow checks; no tuning expansion is authorized.
+
+## Round 2 — Implementer (attempt 1)
+- **expected_behavior**: Producers reserve and copy into preallocated slots, then either hand off directly or withdraw into the tagged global LIFO stack. Consumers preserve LIFO, capacity, ownership, and invalid-output semantics.
+- **hypothesis_outcome**: nominated
+- **next_step**: (none)
+
+- **candidate_disposition**: unassessed
+- **candidate_metrics**: {}
+- **candidate_evaluation_artifact**: (missing)
+- **candidate_operating_point**: (none)
+- **candidate_retention_reason**: No target-bound comparable throughput row was collected; official evaluation remains deferred.
+
+### Summary
+Implemented H2 bounded tagged offer-cell handoff in src/lib.rs and rebuilt stack-candidate.so.
+
+### Evidence
+Seven cargo tests pass, including direct handoff, withdrawal/reuse, duplicate payloads, newest-offer LIFO, and concurrent conservation. Release build succeeded with all nine ABI exports. Evaluator MPMC correctness gate passed 100 trials. No benchmark or target allocation was run.
+

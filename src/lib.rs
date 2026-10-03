@@ -4,6 +4,8 @@ mod ffi;
 
 use std::cell::UnsafeCell;
 use std::ptr;
+#[cfg(test)]
+use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -13,6 +15,10 @@ const STATUS_FULL: u32 = 1;
 const STATUS_EMPTY: u32 = 2;
 const STATUS_INVALID: u32 = 3;
 const STATUS_INTERNAL_ERROR: u32 = 4;
+
+const OFFER_EMPTY: u32 = 0;
+const OFFER_OFFERED: u32 = 1;
+const OFFER_CLAIMED: u32 = 2;
 
 // Head values contain a 32-bit generation followed by a 32-bit slot index.
 // u32::MAX is reserved as the empty-list index, so the maximum representable
@@ -26,6 +32,15 @@ struct Slot {
     length: AtomicUsize,
 }
 
+// The lifecycle word carries a reuse generation and an explicit state. The
+// slot reference and publication sequence live beside it so the full u32 slot
+// index range remains available without sacrificing the ABA tag.
+struct OfferCell {
+    state: AtomicU64,
+    slot: AtomicU32,
+    sequence: AtomicU64,
+}
+
 struct StackState {
     capacity: usize,
     max_value_size: usize,
@@ -36,6 +51,12 @@ struct StackState {
     storage: UnsafeCell<Box<[u8]>>,
     free_head: AtomicU64,
     published_head: AtomicU64,
+    offer_cells: Box<[OfferCell]>,
+    offer_sequence: AtomicU64,
+    #[cfg(test)]
+    test_pause_after_offer: AtomicBool,
+    #[cfg(test)]
+    test_offer_published: AtomicBool,
 }
 
 // The byte arena is shared, but a slot's state machine gives exactly one
@@ -72,6 +93,11 @@ impl Stack {
         let capacity = usize::try_from(capacity).map_err(|_| STATUS_INVALID)?;
         let max_value_size = usize::try_from(max_value_size).map_err(|_| STATUS_INVALID)?;
         let capacity_index = u32::try_from(capacity).map_err(|_| STATUS_INVALID)?;
+        let producer_count_usize = usize::try_from(producer_count).map_err(|_| STATUS_INVALID)?;
+        let consumer_count_usize = usize::try_from(consumer_count).map_err(|_| STATUS_INVALID)?;
+        let offer_cell_count = producer_count_usize
+            .checked_add(consumer_count_usize)
+            .ok_or(STATUS_INTERNAL_ERROR)?;
         let storage_size = capacity
             .checked_mul(max_value_size)
             .ok_or(STATUS_INTERNAL_ERROR)?;
@@ -98,6 +124,18 @@ impl Stack {
             });
         }
 
+        let mut offer_cells = Vec::new();
+        offer_cells
+            .try_reserve_exact(offer_cell_count)
+            .map_err(|_| STATUS_INTERNAL_ERROR)?;
+        for _ in 0..offer_cell_count {
+            offer_cells.push(OfferCell {
+                state: AtomicU64::new(pack_offer_state(0, OFFER_EMPTY)),
+                slot: AtomicU32::new(EMPTY_INDEX),
+                sequence: AtomicU64::new(0),
+            });
+        }
+
         Ok(Self {
             producer_count,
             consumer_count,
@@ -108,6 +146,12 @@ impl Stack {
                 storage: UnsafeCell::new(storage.into_boxed_slice()),
                 free_head: AtomicU64::new(pack_head(0, 0)),
                 published_head: AtomicU64::new(pack_head(0, EMPTY_INDEX)),
+                offer_cells: offer_cells.into_boxed_slice(),
+                offer_sequence: AtomicU64::new(0),
+                #[cfg(test)]
+                test_pause_after_offer: AtomicBool::new(false),
+                #[cfg(test)]
+                test_offer_published: AtomicBool::new(false),
             }),
         })
     }
@@ -187,6 +231,8 @@ impl StackState {
                 )
                 .is_ok()
             {
+                // This successful publication CAS is the push
+                // linearization point for the withdrawal/fallback path.
                 return;
             }
         }
@@ -246,6 +292,168 @@ impl StackState {
             }
         }
     }
+
+    // A producer owns a cell while its state is CLAIMED. It fills the tagged
+    // slot reference and sequence, then release-publishes OFFERED. If the
+    // producer wins the immediate OFFERED -> CLAIMED CAS, the withdrawal
+    // publishes the same slot through the global stack; that publication CAS
+    // is the push linearization point. If the consumer wins the CAS, that
+    // single handoff claim orders the push immediately before the pop, and the
+    // consumer owns the slot while it copies it out. Thus OFFERED is a
+    // visibility state, not a completed push that can outrank a global item.
+    fn offer_or_publish(&self, index: u32) {
+        for cell in self.offer_cells.iter() {
+            let empty = cell.state.load(Ordering::Acquire);
+            let (tag, state) = unpack_offer_state(empty);
+            if state != OFFER_EMPTY {
+                continue;
+            }
+
+            let claim_tag = tag.wrapping_add(1);
+            let claimed = pack_offer_state(claim_tag, OFFER_CLAIMED);
+            if cell
+                .state
+                .compare_exchange_weak(
+                    empty,
+                    claimed,
+                    Ordering::AcqRel,
+                    Ordering::Acquire,
+                )
+                .is_err()
+            {
+                continue;
+            }
+
+            let sequence = self.offer_sequence.fetch_add(1, Ordering::Relaxed);
+            cell.slot.store(index, Ordering::Relaxed);
+            cell.sequence.store(sequence, Ordering::Relaxed);
+
+            // Only the producer that reserved the cell writes this state.
+            // The release store publishes both the slot reference and the
+            // completed value copy to a consumer that acquires OFFERED.
+            let offered = pack_offer_state(claim_tag, OFFER_OFFERED);
+            cell.state.store(offered, Ordering::Release);
+
+            #[cfg(test)]
+            if self.test_pause_after_offer.load(Ordering::Acquire) {
+                self.test_offer_published.store(true, Ordering::Release);
+                while self.test_pause_after_offer.load(Ordering::Acquire) {
+                    std::thread::yield_now();
+                }
+            }
+
+            if cell
+                .state
+                .compare_exchange(
+                    offered,
+                    claimed,
+                    Ordering::AcqRel,
+                    Ordering::Acquire,
+                )
+                .is_ok()
+            {
+                self.publish_slot(index);
+                cell.state.store(
+                    pack_offer_state(claim_tag, OFFER_EMPTY),
+                    Ordering::Release,
+                );
+                return;
+            }
+
+            // The consumer won the claim and now owns the slot. It will
+            // recycle the slot and release the cell after copying.
+            return;
+        }
+
+        self.publish_slot(index);
+    }
+
+    // Offers are examined only after a global published-head attempt found
+    // no item. The newest sequence is the top among concurrently active
+    // offers; its successful claim is the direct push/pop linearization pair.
+    // A failed claim means another actor won the cell; the caller performs at
+    // most one bounded retry through the global path.
+    fn claim_offer(
+        &self,
+        output_capacity: usize,
+    ) -> Result<Option<(usize, u32, usize, u32)>, u32> {
+        let mut newest: Option<(usize, u64, u32, u32)> = None;
+        for (cell_index, cell) in self.offer_cells.iter().enumerate() {
+            let state_word = cell.state.load(Ordering::Acquire);
+            let (tag, state) = unpack_offer_state(state_word);
+            if state != OFFER_OFFERED {
+                continue;
+            }
+
+            let sequence = cell.sequence.load(Ordering::Relaxed);
+            if newest.as_ref().map_or(true, |(_, newest_sequence, _, _)| {
+                sequence > *newest_sequence
+            }) {
+                let index = cell.slot.load(Ordering::Relaxed);
+                newest = Some((cell_index, sequence, index, tag));
+            }
+        }
+
+        let Some((cell_index, _, index, tag)) = newest else {
+            return Ok(None);
+        };
+        let cell = &self.offer_cells[cell_index];
+        let offered = pack_offer_state(tag, OFFER_OFFERED);
+
+        // A competing consumer or withdrawing producer may have changed the
+        // cell after the scan. Reconfirming the tagged state before reading
+        // length prevents an invalid result based on a recycled slot.
+        if cell.state.load(Ordering::Acquire) != offered {
+            return Ok(None);
+        }
+        let length = self.slot(index).length.load(Ordering::Relaxed);
+        if cell.state.load(Ordering::Acquire) != offered {
+            return Ok(None);
+        }
+        if length > output_capacity {
+            return Err(STATUS_INVALID);
+        }
+
+        let claimed = pack_offer_state(tag, OFFER_CLAIMED);
+        if cell
+            .state
+            .compare_exchange(
+                offered,
+                claimed,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .is_err()
+        {
+            return Ok(None);
+        }
+
+        Ok(Some((cell_index, index, length, tag)))
+    }
+
+    fn release_offer(&self, cell_index: usize, tag: u32) {
+        let cell = &self.offer_cells[cell_index];
+        let claimed = pack_offer_state(tag, OFFER_CLAIMED);
+        let empty = pack_offer_state(tag, OFFER_EMPTY);
+        debug_assert_eq!(cell.state.load(Ordering::Acquire), claimed);
+        cell.state.store(empty, Ordering::Release);
+    }
+
+    #[cfg(test)]
+    fn pause_after_offer(&self) {
+        self.test_offer_published.store(false, Ordering::Release);
+        self.test_pause_after_offer.store(true, Ordering::Release);
+    }
+
+    #[cfg(test)]
+    fn offer_is_published(&self) -> bool {
+        self.test_offer_published.load(Ordering::Acquire)
+    }
+
+    #[cfg(test)]
+    fn resume_after_offer(&self) {
+        self.test_pause_after_offer.store(false, Ordering::Release);
+    }
 }
 
 impl Producer {
@@ -270,18 +478,51 @@ impl Producer {
             );
         }
         self.state.slot(index).length.store(data.len(), Ordering::Relaxed);
-        self.state.publish_slot(index);
+        self.state.offer_or_publish(index);
         STATUS_OK
     }
 }
 
 impl Consumer {
     fn try_pop(&self, output: &mut [u8]) -> Result<usize, u32> {
-        let (index, length) = self.state.claim_published_slot(output.len())?;
+        match self.state.claim_published_slot(output.len()) {
+            Ok((index, length)) => return self.copy_global_claim(output, index, length),
+            Err(STATUS_EMPTY) => {}
+            Err(status) => return Err(status),
+        }
 
+        if let Some((cell_index, index, length, tag)) = self.state.claim_offer(output.len())? {
+            unsafe {
+                ptr::copy_nonoverlapping(
+                    self.state.slot_data_ptr(index),
+                    output.as_mut_ptr(),
+                    length,
+                );
+            }
+            self.state.recycle_slot(index);
+            self.state.release_offer(cell_index, tag);
+            return Ok(length);
+        }
+
+        // A withdrawing producer may have published between the first empty
+        // observation and the bounded offer scan. Check the global path once
+        // more; otherwise EMPTY is linearized at one of the empty reads.
+        match self.state.claim_published_slot(output.len()) {
+            Ok((index, length)) => self.copy_global_claim(output, index, length),
+            Err(status) => Err(status),
+        }
+    }
+
+    fn copy_global_claim(
+        &self,
+        output: &mut [u8],
+        index: u32,
+        length: usize,
+    ) -> Result<usize, u32> {
         // The publication CAS acquired the producer's completed copy. The
-        // successful claim transfers exclusive ownership before output is
-        // written, and recycle occurs only after that copy completes.
+        // successful head claim is the pop linearization point, transfers
+        // exclusive ownership before output is written, and recycle occurs
+        // only after that copy completes.
         unsafe {
             ptr::copy_nonoverlapping(
                 self.state.slot_data_ptr(index),
@@ -301,6 +542,16 @@ fn pack_head(tag: u32, index: u32) -> u64 {
 
 #[inline]
 fn unpack_head(value: u64) -> (u32, u32) {
+    ((value >> 32) as u32, value as u32)
+}
+
+#[inline]
+fn pack_offer_state(tag: u32, state: u32) -> u64 {
+    (u64::from(tag) << 32) | u64::from(state)
+}
+
+#[inline]
+fn unpack_offer_state(value: u64) -> (u32, u32) {
     ((value >> 32) as u32, value as u32)
 }
 
@@ -344,6 +595,139 @@ mod tests {
         let mut output = [0_u8; 8];
         assert_eq!(consumer.try_pop(&mut output), Ok(5));
         assert_eq!(&output[..5], b"value");
+    }
+
+    #[test]
+    fn direct_handoff_claim_and_invalid_output_preserve_offer() {
+        let stack = Arc::new(Stack::new(2, 8, 1, 1).unwrap());
+        stack.state.pause_after_offer();
+        let producer = stack.producer(0).unwrap();
+        let producer_thread = thread::spawn(move || producer.try_push(b"value"));
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while !stack.state.offer_is_published() {
+            if std::time::Instant::now() >= deadline {
+                stack.state.resume_after_offer();
+                let _ = producer_thread.join();
+                panic!("producer did not publish a handoff offer");
+            }
+            thread::yield_now();
+        }
+
+        let consumer = stack.consumer(0).unwrap();
+        let mut too_small = [0xA5_u8; 4];
+        assert_eq!(consumer.try_pop(&mut too_small), Err(STATUS_INVALID));
+        assert_eq!(too_small, [0xA5_u8; 4]);
+
+        let mut output = [0_u8; 8];
+        assert_eq!(consumer.try_pop(&mut output), Ok(5));
+        assert_eq!(&output[..5], b"value");
+        stack.state.resume_after_offer();
+        assert_eq!(producer_thread.join().unwrap(), STATUS_OK);
+        assert!(stack
+            .state
+            .offer_cells
+            .iter()
+            .all(|cell| unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_EMPTY));
+        assert_eq!(consumer.try_pop(&mut output), Err(STATUS_EMPTY));
+    }
+
+    #[test]
+    fn newest_overlapping_offer_is_popped_first() {
+        let stack = Arc::new(Stack::new(4, 8, 2, 1).unwrap());
+        stack.state.pause_after_offer();
+        let producer_a = stack.producer(0).unwrap();
+        let producer_b = stack.producer(1).unwrap();
+        let thread_a = thread::spawn(move || producer_a.try_push(b"A"));
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            let offered = stack
+                .state
+                .offer_cells
+                .iter()
+                .filter(|cell| {
+                    unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_OFFERED
+                })
+                .count();
+            if offered == 1 {
+                break;
+            }
+            if std::time::Instant::now() >= deadline {
+                stack.state.resume_after_offer();
+                let _ = thread_a.join();
+                panic!("first producer did not publish a handoff offer");
+            }
+            thread::yield_now();
+        }
+
+        let thread_b = thread::spawn(move || producer_b.try_push(b"B"));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            let offered = stack
+                .state
+                .offer_cells
+                .iter()
+                .filter(|cell| {
+                    unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_OFFERED
+                })
+                .count();
+            if offered == 2 {
+                break;
+            }
+            if std::time::Instant::now() >= deadline {
+                stack.state.resume_after_offer();
+                let _ = thread_a.join();
+                let _ = thread_b.join();
+                panic!("both producers did not publish handoff offers");
+            }
+            thread::yield_now();
+        }
+
+        let consumer = stack.consumer(0).unwrap();
+        let mut output = [0_u8; 8];
+        assert_eq!(consumer.try_pop(&mut output), Ok(1));
+        assert_eq!(&output[..1], b"B");
+        assert_eq!(consumer.try_pop(&mut output), Ok(1));
+        assert_eq!(&output[..1], b"A");
+        stack.state.resume_after_offer();
+        assert_eq!(thread_a.join().unwrap(), STATUS_OK);
+        assert_eq!(thread_b.join().unwrap(), STATUS_OK);
+    }
+
+    #[test]
+    fn withdrawal_publishes_and_reuses_offer_cell() {
+        let stack = Stack::new(2, 8, 1, 1).unwrap();
+        let producer = stack.producer(0).unwrap();
+        let consumer = stack.consumer(0).unwrap();
+
+        for value in [b"first".as_slice(), b"second"] {
+            assert_eq!(producer.try_push(value), STATUS_OK);
+            assert!(stack
+                .state
+                .offer_cells
+                .iter()
+                .all(|cell| unpack_offer_state(cell.state.load(Ordering::Acquire)).1 == OFFER_EMPTY));
+            let mut output = [0_u8; 8];
+            assert_eq!(consumer.try_pop(&mut output), Ok(value.len()));
+            assert_eq!(&output[..value.len()], value);
+        }
+    }
+
+    #[test]
+    fn duplicate_payloads_remain_distinct_stack_items() {
+        let stack = Stack::new(4, 8, 1, 1).unwrap();
+        let producer = stack.producer(0).unwrap();
+        let consumer = stack.consumer(0).unwrap();
+        assert_eq!(producer.try_push(b"same"), STATUS_OK);
+        assert_eq!(producer.try_push(b"same"), STATUS_OK);
+
+        let mut output = [0_u8; 8];
+        assert_eq!(consumer.try_pop(&mut output), Ok(4));
+        assert_eq!(&output[..4], b"same");
+        assert_eq!(consumer.try_pop(&mut output), Ok(4));
+        assert_eq!(&output[..4], b"same");
+        assert_eq!(consumer.try_pop(&mut output), Err(STATUS_EMPTY));
     }
 
     #[test]

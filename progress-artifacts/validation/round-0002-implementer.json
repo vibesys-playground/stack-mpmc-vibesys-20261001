@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "name": "rust-handoff-core-tests",
+      "command": "cargo test --locked",
+      "input_paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "src/lib.rs",
+        "src/ffi.rs"
+      ],
+      "timeout_seconds": 300,
+      "purpose": "Exercise direct handoff, withdrawal publication and reuse, insufficient-output preservation, duplicate payloads, bounded LIFO behavior, and concurrent MPMC conservation."
+    },
+    {
+      "name": "handoff-static-check",
+      "command": "rg -n 'OfferCell|OFFER_(EMPTY|OFFERED|CLAIMED)|offer_or_publish|claim_offer|release_offer|free_head|published_head|slot_data_ptr' src/lib.rs",
+      "input_paths": [
+        "src/lib.rs",
+        "src/ffi.rs",
+        "Cargo.toml",
+        "Cargo.lock",
+        "Makefile"
+      ],
+      "timeout_seconds": 30,
+      "purpose": "Confirm the determining source path contains fixed tagged offer-cell states, bounded handoff/fallback transitions, the retained tagged heads, and preallocated slot storage."
+    }
+  ]
+}
