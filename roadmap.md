@@ -55,11 +55,11 @@ as a debugging task and use `parked` with a concrete hypothesis.
 
 ## Major
 
-- [in_progress] **Preallocated tagged-slot MPMC LIFO** (round 1-2) — the
-  correctness-valid retained design removes the shared mutex and per-item
-  allocation; this round tests a bounded push/pop handoff path to reduce the
-  remaining global published-head CAS contention without changing the ABI or
-  slot ownership contract.
+- [in_progress] **Preallocated tagged-slot MPMC LIFO** (round 1-3) — the
+  correctness-valid handoff implementation is ready, but its direct-claim and
+  withdrawal paths have no comparable target point; this round measures that
+  causal arm against the retained tagged-slot parent before any further tuning
+  or structural pivot.
 - [todo] **Ownership-aware MPMC decomposition** — investigate a hierarchical
   or sharded design only if the single published-top coordination point remains
   the measured limiter after the active experiment.
