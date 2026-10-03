@@ -183,3 +183,8 @@ No actionable failure. The claimed Round 2 correctness result is not yet present
 - **cadence**: every 3 accepted candidate checkpoints
 - **provisional_candidates_before_this_round**: 0
 
+## Round 3 — Orchestrator (pre-round)
+- **need_profile**: False
+- **profile_focus**: None; standalone profiling is disabled. Carry missing bottleneck attribution and parent-comparison visibility as uncertainty into the design call.
+- **reasoning**: The objective and latest progress identify the current preallocated tagged-slot implementation and its handoff mechanism, with correctness gates passing and a trusted benchmark point available. Static evidence is sufficient to choose the next design direction; no unresolved measured bottleneck is required to rank hypotheses. Do not request capture.
+
