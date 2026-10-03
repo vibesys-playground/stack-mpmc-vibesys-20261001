@@ -274,3 +274,16 @@ PASS. The nominated handoff arm is scope-clean and ready for framework gates: cu
 - **handoff-static-check**: pass (executed, inputs `0848391cf2e5`)
 - **abi-export-check**: pass (executed, inputs `b61507cae9b8`)
 
+## Round 3 — Official evaluation policy (attempt 2)
+- **decision**: run
+- **reason**: final_round
+- **cadence**: every 3 accepted candidate checkpoints
+- **provisional_candidates_before_this_round**: 1
+
+## Round 3 — Framework accuracy gate (attempt 2)
+- **verdict**: pass
+- **command**: `go -C _evaluator/stack run . check --workspace ../.. --scenario mpmc --operations 24 --trials 100`
+
+### Output
+PASS - mpmc reservation-aware bounded stack (100 trials, approximately 24 ops/trial, 4P/4C, capacity=1024, value_size=8)
+
