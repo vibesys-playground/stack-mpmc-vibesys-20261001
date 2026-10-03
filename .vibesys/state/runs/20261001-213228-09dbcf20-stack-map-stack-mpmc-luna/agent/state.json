@@ -1,5 +1,5 @@
 {
-  "active_hypothesis_id": "H2-bounded-mpmc-handoff",
+  "active_hypothesis_id": null,
   "hypotheses": [
     {
       "candidate_retained": true,
@@ -103,7 +103,7 @@
     {
       "candidate_retained": null,
       "continuation_rounds": 0,
-      "declared_outcome": null,
+      "declared_outcome": "nominated",
       "feedback": null,
       "gate_accuracy_passed": false,
       "gate_approved_candidate_disposition": "unassessed",
@@ -139,11 +139,49 @@
         "task": "Modify only the candidate implementation around the retained slot state machine in `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs`; keep `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs` and the copying C ABI unchanged. Add fixed bounded offer cells with tagged slot references and explicit empty/offered/claimed reuse states. Push must validate, claim a free slot, copy the value, and release-publish an offer with only bounded probing and no waiting. A consumer claim completes the handoff; otherwise the producer atomically withdraws and publishes the same slot through the existing tagged global LIFO head. Consumers must validate output capacity, acquire and claim only a live offer, copy before recycle, and otherwise use the existing published-head pop. Preserve reservation-aware FULL, publication-aware EMPTY, invalid-output preservation, exact LIFO linearizability, duplicate values, and one-owner-per-slot transitions. Document the linearization cases. Verification strategy: confirm the shared library builds and existing ABI exports remain present; run focused local checks forcing direct handoff, withdrawal, fallback publication, insufficient output, duplicate payloads, and conservation; then use the framework-owned correctness gate and one comparable evaluation without duplicating its canonical benchmark. If correctness fails, isolate the changed dataflow before any further target allocation. Maximum paid calls: one initial target allocation plus one additional allocation only after a correctness-only repair; no tuning expansion. A wrapper rejection is unspent only with raw proof that target allocation never began.",
         "title": "Bounded push/pop handoff for the retained tagged-slot stack"
       },
-      "resolution": null,
+      "resolution": "unmeasured",
       "revert_applied": false,
       "revert_commit": null,
-      "review": "pending",
-      "rounds": [],
+      "review": "pass",
+      "rounds": [
+        {
+          "candidate_disposition": "unassessed",
+          "candidate_evaluation_artifact": null,
+          "candidate_metrics": {},
+          "candidate_operating_point": "",
+          "candidate_retained": null,
+          "candidate_retention_reason": "No target-bound comparable throughput row was collected; official evaluation remains deferred.",
+          "commit": "8b04c08169f3fa4cf859b67fecfacd5db569d46f",
+          "evaluation_artifact": null,
+          "hypothesis_claim": "Adding a bounded, non-waiting elimination handoff array to the retained preallocated tagged-slot stack will let overlapping producers transfer completed slots directly to consumers, reducing global published-head CAS contention while preserving reservation-aware capacity and exact LIFO linearizability.",
+          "hypothesis_declared_outcome": "nominated",
+          "hypothesis_id": "H2-bounded-mpmc-handoff",
+          "hypothesis_outcome": "unmeasured",
+          "hypothesis_parent_commit": "092bbe85734f8ae1dc0b341bf5bad6a971c6c744",
+          "hypothesis_parent_round": 1,
+          "hypothesis_task": "Modify only the candidate implementation around the retained slot state machine in `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs`; keep `/mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs` and the copying C ABI unchanged. Add fixed bounded offer cells with tagged slot references and explicit empty/offered/claimed reuse states. Push must validate, claim a free slot, copy the value, and release-publish an offer with only bounded probing and no waiting. A consumer claim completes the handoff; otherwise the producer atomically withdraws and publishes the same slot through the existing tagged global LIFO head. Consumers must validate output capacity, acquire and claim only a live offer, copy before recycle, and otherwise use the existing published-head pop. Preserve reservation-aware FULL, publication-aware EMPTY, invalid-output preservation, exact LIFO linearizability, duplicate values, and one-owner-per-slot transitions. Document the linearization cases. Verification strategy: confirm the shared library builds and existing ABI exports remain present; run focused local checks forcing direct handoff, withdrawal, fallback publication, insufficient output, duplicate payloads, and conservation; then use the framework-owned correctness gate and one comparable evaluation without duplicating its canonical benchmark. If correctness fails, isolate the changed dataflow before any further target allocation. Maximum paid calls: one initial target allocation plus one additional allocation only after a correctness-only repair; no tuning expansion. A wrapper rejection is unspent only with raw proof that target allocation never began.",
+          "implementer_driver": "agentshim",
+          "implementer_model": "gpt-5.6-luna",
+          "implementer_provider": "codex",
+          "judge_verdict": "pass",
+          "metrics": {},
+          "official_evaluation": false,
+          "official_evaluation_reason": null,
+          "passed": true,
+          "perf_baseline_commit": null,
+          "perf_baseline_metric": null,
+          "perf_baseline_round": null,
+          "perf_comparison": null,
+          "perf_delta_pct": null,
+          "perf_direction": null,
+          "perf_metric": null,
+          "perf_provenance": null,
+          "perf_unit": null,
+          "profile_skipped": true,
+          "reviewed": true,
+          "round_number": 2
+        }
+      ],
       "started_round": 2,
       "strategy": "available",
       "strategy_reason": null

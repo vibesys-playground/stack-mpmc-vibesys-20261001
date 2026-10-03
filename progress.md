@@ -177,3 +177,9 @@ No actionable failure. The claimed Round 2 correctness result is not yet present
 - **rust-handoff-core-tests**: pass (executed, inputs `f2326ba138af`)
 - **handoff-static-check**: pass (executed, inputs `0a8ce701def3`)
 
+## Round 2 — Official evaluation policy (attempt 1)
+- **decision**: deferred
+- **reason**: cadence_not_due
+- **cadence**: every 3 accepted candidate checkpoints
+- **provisional_candidates_before_this_round**: 0
+
