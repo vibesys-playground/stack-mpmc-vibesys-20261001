@@ -190,7 +190,7 @@
       "candidate_retained": null,
       "continuation_rounds": 0,
       "declared_outcome": null,
-      "feedback": null,
+      "feedback": "Preserve the valid Round 1 frontier/control row and do not credit the mismatched Round 2 validation output. A corrected framework checkpoint must then execute the current Round 3 validation recipe and official gates. No source or performance defect was established; the failure is the retention/identity inconsistency preventing the nominated outcome from being ready for gates.",
       "gate_accuracy_passed": false,
       "gate_approved_candidate_disposition": "unassessed",
       "gate_approved_candidate_evaluation_artifact": null,
