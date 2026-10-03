@@ -188,3 +188,48 @@ No actionable failure. The claimed Round 2 correctness result is not yet present
 - **profile_focus**: None; standalone profiling is disabled. Carry missing bottleneck attribution and parent-comparison visibility as uncertainty into the design call.
 - **reasoning**: The objective and latest progress identify the current preallocated tagged-slot implementation and its handoff mechanism, with correctness gates passing and a trusted benchmark point available. Static evidence is sufficient to choose the next design direction; no unresolved measured bottleneck is required to rank hypotheses. Do not request capture.
 
+## Round 3 — Orchestrator (plan)
+- **hypothesis_id**: H3-bounded-handoff-causal-arm
+- **reasoning**: Comparable trajectory is baseline mutex/heap storage to the Round 1 preallocated tagged-slot parent at 3,450,045 total_ops_per_sec, then the correctness-valid bounded-handoff arm with no measured end-to-end delta. The remaining gap is unknown because no terminal target is configured. The changed architecture boundary is inside the candidate core: optional bounded producer/consumer handoff cells bypass global publication contention; ABI and evaluator boundaries remain unchanged. Keep the roadmap Major Preallocated tagged-slot MPMC LIFO in_progress for this causal A/B checkpoint. Do not profile, interpolate another offer-cell tuning point, or pivot to sharding or copy-layout work before this arm is measured. The Round 1 parent is the trustworthy control; the current workspace already contains the handoff arm, so no rollback is needed. Because the missing target row blocks deciding whether to continue or pivot, request an early official evaluation despite cadence not being due.
+
+### Hypothesis
+With the unchanged copying ABI and preallocated tagged-slot storage, the bounded tagged offer-cell handoff arm will improve end-to-end MPMC throughput by bypassing the global published-head CAS for overlapping push/pop pairs, while withdrawal fallback preserves reservation-aware capacity, publication visibility, and exact ownership.
+
+### Activation evidence
+The current candidate in /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs contains fixed tagged offer cells, producer offer-or-publish logic, consumer offer claiming, and global withdrawal fallback. /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/progress.md records focused direct-handoff, withdrawal, reuse, and conservation checks passing. The Round 1 parent has the only trusted comparable point: 3,450,045 total_ops_per_sec; the current handoff arm has no target-bound throughput row.
+
+### Falsification criteria
+Any ABI, lifecycle, trusted correctness, ownership, LIFO, reservation/full, empty, conservation, or cleanup failure is a hard falsification. If changed-path checks cannot demonstrate both direct offer claim and producer withdrawal into global publication, this implementation of the mechanism is not activated. If activation is proven but the comparable result misses the stated minimum, reject this arm for retention and keep the parent; a flat metric alone is not grounds to declare the direction abandoned.
+
+### Expected effect (forecast)
+Forecast an 8-30% increase in trusted MPMC total_ops_per_sec when overlapping operations activate direct handoff and avoid global published-head CAS; neutral or negative results are plausible when activation is low or copying dominates.
+
+### Minimum acceptance criteria
+Hard feasibility is mandatory: required shared library, unchanged copying C ABI, valid lifecycle, trusted correctness, exact bounded LIFO semantics, reservation-aware FULL, publication-aware EMPTY, copied ownership, and conservation. For scalar retention against the Round 1 parent, require direct/withdrawal activation and a median at least 1.08 x 3,450,045 = approximately 3,726,049 total_ops_per_sec, with no more than 5% relative degradation in any repeated accepted comparison. The 8% floor exceeds the observed roughly 3.4% parent sample spread and pays for bounded offer metadata, probing, and extra atomic state. Allowed tradeoff is only bounded creation-time O(producer_count + consumer_count) metadata and probe work; no ABI, semantic, safety, or operation-time-allocation tradeoff is allowed.
+
+### Invariants
+Hard constraints: /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/.vibesys/state/runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/runtime/effective-objective.md. ABI and lifecycle: /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/_evaluator/stack/CANDIDATE_CONTRACT.md and /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs. Trusted semantics and metric: /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/_evaluator/stack/DESIGN.md and /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/_evaluator/stack/benchmark.go. Hypothesis diagnostics: each push reserves before offering, tagged offer state uses release/acquire publication and claim, insufficient output is checked before removal, output is copied before recycle, fallback publication is bounded, and no operation-time allocation or second owner exists for a slot.
+
+### Task
+Use the current bounded handoff implementation in /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/lib.rs as the sole experimental arm against the Round 1 preallocated tagged-slot parent. Preserve /mnt/data/rairai77/stack-map-luna-runs/20261001-213228-09dbcf20-stack-map-stack-mpmc-luna/src/ffi.rs, the copying C ABI, evaluator inputs, and the validated slot state machine; do not add sharding, batching, profiling, or another tuning point. Stage the work as: cheap capability confirmation that the shared library and required exports remain valid; focused changed-dataflow checks forcing direct offer claim, producer withdrawal and global fallback, offer reuse, insufficient-output preservation, duplicate payload distinction, reservation-aware FULL versus publication-aware EMPTY, concurrent conservation, and cleanup; then one framework-owned comparable MPMC evaluation using the same configuration as the retained parent. Do not duplicate the canonical benchmark command. If a correctness defect appears, isolate the complete changed dataflow locally before any target call and allow at most one additional target allocation only after a correctness-only repair. Hard paid-call maximum over retries is one initial target allocation plus one repair allocation; a wrapper rejection is unspent only with raw proof that target allocation never began. If the arm is rejected, retain the parent explicitly as production default.
+
+### Pass criteria
+Activation: the candidate uses the fixed tagged offer cells and demonstrates both consumer claim and producer withdrawal-to-global-publication paths. Correctness: the framework-owned gate passes ABI, lifecycle, reservation/publication, LIFO, duplicate, insufficient-output, ABA, ownership, and conservation checks. Cleanup: handles, offer cells, slots, and storage are released without dangling ownership; if rejected, production startup explicitly retains the Round 1 parent rather than leaving the failed arm as default. Evidence: record the activation observations and one comparable target result against the Round 1 parent; do not duplicate the canonical benchmark command.
+
+## Round 3 — Implementer (attempt 1)
+- **expected_behavior**: Tagged offer cells support direct consumer claims and producer withdrawal to the global LIFO stack, with bounded preallocated storage, reservation-aware FULL, publication-aware EMPTY, copied ownership, and exact conservation.
+- **hypothesis_outcome**: nominated
+- **next_step**: (none)
+
+- **candidate_disposition**: unassessed
+- **candidate_metrics**: {}
+- **candidate_evaluation_artifact**: (missing)
+- **candidate_operating_point**: (none)
+- **candidate_retention_reason**: No target-bound comparable row was collected; official framework evaluation remains pending.
+
+### Summary
+Revalidated the existing bounded handoff arm without source changes; rebuilt the shared library and added a schema-valid local validation recipe.
+
+### Evidence
+cargo test --locked passed all 7 focused tests, including direct handoff, withdrawal/reuse, insufficient-output preservation, duplicate payloads, overlapping-offer LIFO, and concurrent MPMC conservation. Release build succeeded; stack-candidate.so matches the release binary byte-for-byte and exports all 9 required ABI symbols. Static handoff checks passed. No framework-owned correctness gate or benchmark was duplicated, so no throughput metric is claimed.
+

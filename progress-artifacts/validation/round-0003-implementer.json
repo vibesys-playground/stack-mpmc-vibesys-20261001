@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "name": "rust-handoff-core-tests",
+      "command": "cargo test --locked",
+      "input_paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "src/lib.rs",
+        "src/ffi.rs"
+      ],
+      "timeout_seconds": 300,
+      "purpose": "Exercise direct offer claiming, withdrawal publication and reuse, insufficient-output preservation, duplicate payload distinction, bounded LIFO behavior, and concurrent MPMC conservation through the changed implementation."
+    },
+    {
+      "name": "handoff-static-check",
+      "command": "rg -n 'OfferCell|OFFER_(EMPTY|OFFERED|CLAIMED)|offer_or_publish|claim_offer|release_offer|free_head|published_head|slot_data_ptr|AtomicU64' src/lib.rs",
+      "input_paths": [
+        "src/lib.rs",
+        "src/ffi.rs",
+        "Cargo.toml",
+        "Cargo.lock",
+        "Makefile"
+      ],
+      "timeout_seconds": 30,
+      "purpose": "Confirm the determining source path contains fixed tagged offer-cell states, bounded handoff and global fallback transitions, retained tagged heads, and preallocated slot storage."
+    },
+    {
+      "name": "abi-export-check",
+      "command": "test -f stack-candidate.so && for symbol in vsst_abi_version vsst_stack_create vsst_stack_destroy vsst_producer_create vsst_producer_destroy vsst_consumer_create vsst_consumer_destroy vsst_try_push vsst_try_pop; do nm -D --defined-only stack-candidate.so | awk '{print $3}' | rg -qx \"$symbol\" || exit 1; done",
+      "input_paths": [
+        "stack-candidate.so",
+        "_evaluator/stack/include/vibesys_stack_abi.h",
+        "src/ffi.rs"
+      ],
+      "timeout_seconds": 30,
+      "purpose": "Confirm the materialized candidate artifact exists and exports every required copying C ABI symbol."
+    }
+  ]
+}
